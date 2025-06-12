@@ -1,176 +1,252 @@
-<p align="center">
-  <a href="https://openmeter.io">
-    <img src="assets/logo.png" width="100" alt="OpenMeter logo" />
-  </a>
+# OpenMeter Helm Charts
 
-  <h1 align="center">
-    OpenMeter
-  </h1>
-</p>
+This repository contains Helm chart build configurations and scripts to create and deploy enhanced versions of the OpenMeter chart to Amazon ECR.
 
-[![GitHub Release](https://img.shields.io/github/v/release/openmeterio/openmeter?style=flat-square)](https://github.com/openmeterio/openmeter/releases/latest)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/openmeterio/openmeter/ci.yaml?style=flat-square)](https://github.com/openmeterio/openmeter/actions/workflows/ci.yaml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter)
-[![Go Report Card](https://goreportcard.com/badge/github.com/openmeterio/openmeter?style=flat-square)](https://goreportcard.com/report/github.com/openmeterio/openmeter)
-![GitHub Repo stars](https://img.shields.io/github/stars/openmeterio/openmeter)
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/openmeterio?label=Follow)
+## Overview
 
-OpenMeter provides flexible Billing and Metering for AI and DevTool companies. It also includes real-time insights and usage limit enforcement.
+The repository provides a streamlined way to build and deploy OpenMeter Helm charts to Amazon ECR. It supports versioned and latest tags and maintains a robust build pipeline with automated quality checks.
 
-Learn more about OpenMeter at [https://openmeter.io](https://openmeter.io).
+## Requirements
 
-## Try It
+- Helm 3.8+ installed and configured
+- AWS CLI installed and configured with appropriate credentials
+- Access to the target ECR repository
+- kubectl configured for Kubernetes cluster access
+- Go 1.21+ (specified in `go.mod`)
 
-Get started with the latest version of OpenMeter in minutes.
+## Repository Structure
 
-### Local
-
-```sh
-git clone git@github.com:openmeterio/openmeter.git
-cd openmeter/quickstart
-docker compose up -d
+```
+.
+├── deploy/
+│   └── charts/
+│       └── openmeter/
+│           ├── Chart.yaml              # Chart version and metadata
+│           ├── values.yaml             # Chart configuration values
+│           ├── templates/
+│           │   └── ...                # OpenMeter templates
+│           └── charts/                # Chart dependencies
+├── tag-templates/
+│   ├── version-tag-template           # Template for version-specific tags
+│   └── latest-tag-template            # Template for latest tags
+├── patches/
+│   └── README.md                      # Patch documentation
+├── hooks/
+│   ├── pre-commit                     # Git pre-commit hook
+│   └── README.md                      # Hooks documentation
+├── version                            # Contains semantic version (e.g., 1.0.0-beta.213)
+├── build.sh                           # Script to build Helm charts
+├── push_to_ecr.sh                     # Script to deploy charts to ECR
+├── setup-hooks.sh                     # Script to configure Git hooks
+├── Makefile                           # Build and development commands
+└── BUILD_FLOW.md                      # Comprehensive build documentation
 ```
 
-Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo of OpenMeter.
+## Versioning System
 
-### Cloud
+The repository uses a flexible template-based versioning system:
 
-[Sign up](https://openmeter.cloud) for a free account and start metering your usage in the cloud.
+1. `version`: Contains the semantic version number (e.g., `1.0.0-beta.213`)
+2. `tag-templates/version-tag-template`: Template for version-specific tags
+3. `tag-templates/latest-tag-template`: Template for latest tags
+4. `deploy/charts/openmeter/Chart.yaml`: Chart version automatically synced with version file
 
-> [!TIP]
-> Check out how OpenMeter Cloud compares with the self-hosted version in our [comparison guide](https://openmeter.io/docs/cloud#comparison).
+The templates use placeholders that are automatically replaced during build:
 
-### Deploy
+- `{VERSION}` is replaced with the content of the `version` file
 
-Deploy OpenMeter to your Kubernetes cluster using our [Helm chart](https://openmeter.io/docs/deploy/kubernetes).
+**Current Templates:**
 
-## Links
+- Version template: `{VERSION}`
+- Latest template: `latest`
 
-- [Examples](/examples)
-- [Demo Video](https://www.loom.com/share/c965e56f1df9450492e687dfb3c18b49)
-- [Stripe UBP Demo](https://www.loom.com/share/bc1cfa1b7ed94e65bd3a82f9f0334d04)
-- [Decisions](/docs/decisions)
+For example, with version `1.0.0-beta.213`, the tags would be:
 
-## Community
+- `1.0.0-beta.213`
+- `latest` (when using `--enable-latest`)
 
-To engage with our community, you can use the following resources:
+The packaged charts are named:
 
-- [Discord](https://discord.gg/nYH3ZQ3Xzq) - Get support or discuss the project.
-- [Contributing to OpenMeter](CONTRIBUTING.md) - Start here if you want to contribute.
-- [Code of Conduct](CODE_OF_CONDUCT.md) - Our community guidelines.
-- [Adopters](ADOPTERS.md) - Companies already using OpenMeter.
-- [Blog](https://openmeter.io/blog/) - Stay up-to-date.
+- `scispace-openmeter-helm-1.0.0-beta.213.tgz`
+- `scispace-openmeter-helm-latest.tgz` (when using `--enable-latest`)
 
-## Examples
+## Git Hooks
 
-See our examples to learn about common OpenMeter use-cases.
+The repository includes Git hooks to enforce version management and chart quality:
 
-- [Metering Kubernetes Pod Execution Time](/examples/collectors/kubernetes-pod-exec-time)
-- Usage Based Billing with Stripe ([Go](https://github.com/openmeterio/examples/tree/main/export-stripe-go), [Node](https://github.com/openmeterio/examples/tree/main/export-stripe-node))
-- [Metering based on logs](/examples/ingest-logs)
+### Setup Hooks
 
-## API
+```bash
+./setup-hooks.sh
+```
 
-OpenMeter exposes a [REST API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/openmeterio/openmeter/main/api/openapi.yaml) for integrations.
+This configures Git to use the project's hooks, including:
 
-## Client SDKs
+- **pre-commit**: Ensures the version file is updated, validates Helm chart syntax, and checks version consistency
 
-Currently, we offer the following Client SDKs:
+## Usage
 
-- [JavaScript](/api/client/javascript)
-- [Python](/api/client/python)
-- [Go](/api/client/go)
+### AWS Profile Configuration
 
-In cases where no specific SDK is available for your preferred programming language, you can utilize the [OpenAPI definition](https://github.com/openmeterio/openmeter/blob/main/api/openapi.yaml).
-Please raise a [GitHub issue](https://github.com/openmeterio/openmeter/issues/new?assignees=&labels=area%2Fapi%2Ckind%2Ffeature&projects=&template=feature_request.yaml) to request SDK support in other languages.
+If you have multiple AWS CLI profiles configured, make sure to set the `AWS_PROFILE` environment variable before running the deploy script:
+
+```bash
+export AWS_PROFILE=your-profile-name
+```
+
+### Building Charts
+
+To build and package the Helm charts:
+
+```bash
+# Build version-specific chart only
+./build.sh
+
+# Build version-specific chart and latest chart
+./build.sh --enable-latest
+```
+
+This will:
+
+1. Read the semantic version and templates
+2. Update chart dependencies
+3. Lint the Helm chart for syntax validation
+4. Package the chart with version-specific tags
+5. Optionally create latest tagged chart (with `--enable-latest` flag)
+
+### Deploying to ECR
+
+To deploy the built charts to Amazon ECR:
+
+```bash
+# If using a specific AWS profile
+export AWS_PROFILE=your-profile-name
+
+# Deploy version-specific chart only
+./push_to_ecr.sh
+
+# Deploy version-specific chart and latest chart
+./push_to_ecr.sh --enable-latest
+```
+
+This will:
+
+1. Authenticate with AWS ECR
+2. Create ECR repository if it doesn't exist
+3. Push version-specific chart to ECR
+4. Optionally push latest chart (with `--enable-latest` flag)
+
+The charts will be pushed to:
+
+```
+249531194221.dkr.ecr.us-west-2.amazonaws.com/scispace/openmeter-helm
+```
+
+### Installing from ECR
+
+To install the chart from ECR:
+
+```bash
+# Install specific version
+helm install openmeter oci://249531194221.dkr.ecr.us-west-2.amazonaws.com/scispace/openmeter-helm --version 1.0.0-beta.213
+
+# Install latest version
+helm install openmeter oci://249531194221.dkr.ecr.us-west-2.amazonaws.com/scispace/openmeter-helm --version latest
+```
+
+## Chart Tags
+
+### Version-Specific Tags (Always Created)
+
+- Chart: e.g., `1.0.0-beta.213`
+
+### Latest Tags (Created with --enable-latest)
+
+- Latest Chart: `latest`
+
+## Patches
+
+The repository includes patches for OpenMeter components located in the `patches/` directory. These patches are automatically applied during the chart build process.
+
+## Make Commands
+
+The repository includes convenient Make targets:
+
+```bash
+# Setup and development
+make setup-dev              # Setup hooks and dependencies
+make helm-lint              # Validate chart syntax
+make helm-test              # Dry-run test
+
+# Building
+make helm-build             # Build version-specific chart
+make helm-build-latest      # Build with latest tag
+
+# Deployment
+make helm-deploy            # Build and push to ECR
+make helm-deploy-latest     # Build and push with latest tag
+```
+
+## Restrictions
+
+1. **AWS Region**: Currently configured for `us-west-2`. To use a different region, modify `AWS_REGION` in `push_to_ecr.sh`
+2. **ECR Repository**: Hardcoded to use account `249531194221`. Update `ECR_REGISTRY` in `push_to_ecr.sh` if using a different account
+3. **Helm Version**: Requires Helm 3.8+ for OCI registry support
+4. **Kubernetes Version**: Compatible with Kubernetes 1.24+
 
 ## Development
 
-**For an optimal developer experience, it is recommended to install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html).**
+### Setting Up Development Environment
 
-<details><summary><i>Installing Nix and direnv</i></summary><br>
+1. Clone the repository
+2. Set up Git hooks: `./setup-hooks.sh`
+3. Update dependencies: `make helm-deps`
+4. Ensure Helm and AWS CLI are configured
 
-**Note: These are instructions that _SHOULD_ work in most cases. Consult the links above for the official instructions for your OS.**
+### Updating Versions
 
-Install Nix:
+1. Update the semantic version in `version` file (e.g., `1.0.0-beta.213` → `1.0.0-beta.214`)
+2. The pre-commit hook will ensure you've updated the version before committing
+3. The hook will also validate Chart.yaml version matches the version file
+4. Update tag templates in `tag-templates/` if needed
+5. Run `make helm-build-latest` to create new charts
+6. Run `make helm-push-latest` to push to ECR
 
-```sh
-sh <(curl -L https://nixos.org/nix/install) --daemon
+### Modifying Tag Templates
+
+You can customize the tagging scheme by editing:
+
+- `tag-templates/version-tag-template`: For version-specific tags
+- `tag-templates/latest-tag-template`: For latest tags
+
+### Testing Changes
+
+```bash
+# Lint chart
+make helm-lint
+
+# Test with dry-run
+make helm-test
+
+# Validate version consistency
+cat version
+grep '^version:' deploy/charts/openmeter/Chart.yaml
 ```
 
-Consult the [installation instructions](https://direnv.net/docs/installation.html) to install direnv using your package manager.
+## Security Notes
 
-On MacOS:
+- Ensure AWS credentials are properly configured with minimal required permissions
+- Do not commit AWS credentials or sensitive information to the repository
+- Keep chart dependencies updated for security patches
+- The pre-commit hook helps prevent accidental commits without version updates
 
-```sh
-brew install direnv
-```
+## Contributing
 
-Install from binary builds:
+When contributing to this repository:
 
-```sh
-curl -sfL https://direnv.net/install.sh | bash
-```
-
-The last step is to configure your shell to use direnv. For example for bash, add the following lines at the end of your `~/.bashrc`:
-
-    eval "\$(direnv hook bash)"
-
-**Then restart the shell.**
-
-For other shells, see [https://direnv.net/docs/hook.html](https://direnv.net/docs/hook.html).
-
-**MacOS specific instructions**
-
-Nix may stop working after a MacOS upgrade. If it does, follow [these instructions](https://github.com/NixOS/nix/issues/3616#issuecomment-662858874).
-
-<hr>
-</details>
-
-Run the dependencies:
-
-```sh
-make up
-```
-
-Run OpenMeter:
-
-```sh
-make run
-```
-
-Run tests:
-
-```sh
-make test
-```
-
-Run linters:
-
-```sh
-make lint
-```
-
-### Tools
-
-Run Docker Compose with dev profile to enable UI for Kafka and ClickHouse:
-
-```sh
-docker compose --profile dev up
-```
-
-If you are seeing ghcr.io denied error, login to ghcr.io using a GitHub personal access token:
-
-```sh
-docker login ghcr.io
-```
-
-## Roadmap
-
-Visit our website at [https://openmeter.io](https://openmeter.io#roadmap) for our public roadmap.
-
-## License
-
-The project is licensed under the [Apache 2.0 License](LICENSE).
-
-[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter.svg?type=large)](https://app.fossa.com/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter?ref=badge_large)
+1. Set up Git hooks using `./setup-hooks.sh`
+2. Update chart templates and values when making changes
+3. Test changes with both local and ECR deployments
+4. Update version files according to semantic versioning principles
+5. The pre-commit hook will ensure version consistency and chart validation
+6. Update documentation for new features

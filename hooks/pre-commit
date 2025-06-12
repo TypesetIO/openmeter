@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Get the current version from the version file
+CURRENT_VERSION=$(cat version)
+
+# Get the version from the last commit
+PREVIOUS_VERSION=$(git show HEAD:version 2>/dev/null || echo "")
+
+# If this is the first commit, allow it
+if [ -z "$PREVIOUS_VERSION" ]; then
+    echo "First commit detected, skipping version check."
+else
+    # Compare versions
+    if [ "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]; then
+        echo "Error: Version in 'version' file has not been updated."
+        echo "Current version: $CURRENT_VERSION"
+        echo "Previous version: $PREVIOUS_VERSION"
+        echo "Please update the version before committing."
+        exit 1
+    fi
+fi
+
+# Validate Helm chart syntax
+echo "Validating Helm chart..."
+if ! helm lint deploy/charts/openmeter; then
+    echo "Error: Helm chart validation failed."
+    echo "Please fix the chart issues before committing."
+    exit 1
+fi
+
+# Check if Chart.yaml version matches version file
+CHART_VERSION=$(grep '^version:' deploy/charts/openmeter/Chart.yaml | awk '{print $2}')
+if [ "$CHART_VERSION" != "$CURRENT_VERSION" ]; then
+    echo "Error: Chart.yaml version ($CHART_VERSION) does not match version file ($CURRENT_VERSION)."
+    echo "Please update Chart.yaml version to match the version file."
+    exit 1
+fi
+
+echo "Pre-commit checks passed successfully!"
+exit 0 

@@ -131,6 +131,62 @@ seed: ## Seed OpenMeter with test data
 	$(call print-target)
 	benthos -c etc/seed/seed.yaml
 
+# Helm chart targets
+.PHONY: setup-hooks
+setup-hooks: ## Setup Git hooks for version management and chart validation
+	$(call print-target)
+	./setup-hooks.sh
+
+.PHONY: helm-lint
+helm-lint: ## Lint Helm chart
+	$(call print-target)
+	helm lint deploy/charts/openmeter
+
+.PHONY: helm-build
+helm-build: ## Build and package Helm chart
+	$(call print-target)
+	./build.sh
+
+.PHONY: helm-build-latest
+helm-build-latest: ## Build and package Helm chart with latest tag
+	$(call print-target)
+	./build.sh --enable-latest
+
+.PHONY: helm-push
+helm-push: ## Push Helm chart to ECR
+	$(call print-target)
+	./push_to_ecr.sh
+
+.PHONY: helm-push-latest
+helm-push-latest: ## Push Helm chart to ECR with latest tag
+	$(call print-target)
+	./push_to_ecr.sh --enable-latest
+
+.PHONY: helm-deploy
+helm-deploy: helm-build helm-push ## Build and deploy Helm chart to ECR
+	$(call print-target)
+	@echo "Helm chart built and pushed successfully!"
+
+.PHONY: helm-deploy-latest
+helm-deploy-latest: helm-build-latest helm-push-latest ## Build and deploy Helm chart to ECR with latest tag
+	$(call print-target)
+	@echo "Helm chart built and pushed with latest tag successfully!"
+
+.PHONY: helm-test
+helm-test: ## Test Helm chart with dry-run
+	$(call print-target)
+	helm upgrade --install openmeter-test ./deploy/charts/openmeter --dry-run --debug
+
+.PHONY: helm-deps
+helm-deps: ## Update Helm chart dependencies
+	$(call print-target)
+	cd deploy/charts && helm dependency update openmeter
+
+.PHONY: setup-dev
+setup-dev: setup-hooks helm-deps ## Setup development environment
+	$(call print-target)
+	@echo "Development environment setup complete!"
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:
